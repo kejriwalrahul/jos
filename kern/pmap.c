@@ -376,7 +376,7 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	pde_t *pd_entry;
-	pd_entry = pgdir + PDX(*((uintptr_t*)va));
+	pd_entry = pgdir + PDX((uintptr_t)va);
 	pde_t pd_val = *pd_entry;
 	if (!(pd_val & PTE_P)) {
 		if (!create) {
@@ -389,12 +389,17 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		pg->pp_ref++;
 		pd_val = page2pa(pg);
 		*pd_entry = (PTE_ADDR(pd_val) | PTE_P | PTE_W | PTE_U);
+	/*	cprintf("\n pgdir is %p", pgdir);
+		cprintf("\n pg_entry is %p", pd_entry);
+		cprintf("\n pgdir[0] is %u", *pgdir);
+		cprintf("\n*pd_entry==%u", *pd_entry);
+		cprintf("\naddress of newly allocated pt: %u", pd_val);*/
 	}
 	pd_val = PTE_ADDR(pd_val);
 	pde_t *pt_base;
 	pt_base =  (pde_t*)KADDR(pd_val);
 	pde_t *pt_entry;
-	pt_entry = pt_base + PTX(*((uintptr_t*)va));
+	pt_entry = pt_base + PTX((uintptr_t)va);
 	return pt_entry;
 }
 
@@ -413,7 +418,7 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	uintptr_t lim = va + size;
-	while(va < size){
+	while(va < lim){
 		pte_t *curr_page = pgdir_walk(pgdir, (void*) va, 1);
 
 		*curr_page  =  (pa & ~0xfff) | perm | PTE_P;
@@ -482,7 +487,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
-	pte_t *curr_entry = pgdir_walk(pgdir, (void*) va, 0);
+	pte_t *curr_entry = pgdir_walk(pgdir, va, 0);
 
 	if(!curr_entry || !(*curr_entry & PTE_P))
 		return NULL;
@@ -786,6 +791,8 @@ check_page(void)
 	// free pp0 and try again: pp0 should be used for page table
 	page_free(pp0);
 	assert(page_insert(kern_pgdir, pp1, 0x0, PTE_W) == 0);
+	/*cprintf("\nPTE_ADDR(kern_pgdir[0]) is %u", PTE_ADDR(kern_pgdir[0]));
+	cprintf("\npage2pa(pp0) is %u", page2pa(pp0));*/
 	assert(PTE_ADDR(kern_pgdir[0]) == page2pa(pp0));
 	assert(check_va2pa(kern_pgdir, 0x0) == page2pa(pp1));
 	assert(pp1->pp_ref == 1);
