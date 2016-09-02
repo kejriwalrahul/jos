@@ -375,39 +375,7 @@ page_decref(struct PageInfo* pp)
 pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
-	// Fill this function in
-	uintptr_t *pte_addr = (uintptr_t) pgdir + (PDX(va)<<2)
-	uintptr_t pte 		= *pte_addr;
-
-	if(!(pte & PTE_P)){
-		if(create == 0)
-			return NULL;
-		// create PD entry
-		struct PageInfo* pd = page_alloc(1);
-		if (pd == NULL) {
-			return NULL;
-		}
-		uintptr_t pd_add = page2pa(pd);
-		*pte_addr = pd_add | PTE_P | PTE_W | PTE_U;
-		pd->pp_ref++; 
-	}
-
-	uintptr_t *pe_addr = (uintptr_t)PTE_ADDR(pte)  + (PTX(va)<<2)
-	uintptr_t pe 		= *pe_addr;		
-
-	if(!(pe & PTE_P)){
-		if(create == 0)
-			return NULL;
-		// create PT entry
-		struct PageInfo* pp = page_alloc(1);
-		if (pp == NULL)
-			return NULL;
-		uintptr_t page_add = page2pa(pp);
-		*pe_addr = page_add | PTE_P | PTE_W | PTE_U;
-		pp->pp_ref++;
-	}	
-
-	return (pte_t*) pe_addr;
+	return 0;
 }
 
 //
@@ -424,13 +392,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
-	uintptr_t i = va;
-	while (i < va+size) {
-		pte_t *pt = pgdir_walk(pgdir, i, 1);
-		*pt = pa | perm | PTE_P;
-		pa += PGSIZE;
-		i = i + PGSIZE;
-	}
+
 }
 
 //
@@ -461,7 +423,6 @@ boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm
 int
 page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
-	// Fill this function in
 	return 0;
 }
 
@@ -479,8 +440,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 struct PageInfo *
 page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
-	// Fill this function in
-	return NULL;
+	return 0;
 }
 
 //
@@ -501,7 +461,6 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 void
 page_remove(pde_t *pgdir, void *va)
 {
-	// Fill this function in
 }
 
 //
