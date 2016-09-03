@@ -182,6 +182,7 @@ mem_init(void)
 
 	//////////////////////////////////////////////////////////////////////
 	// Now we set up virtual memory
+	int i;
 
 	//////////////////////////////////////////////////////////////////////
 	// Map 'pages' read-only by the user at linear address UPAGES
@@ -190,6 +191,7 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir, (uintptr_t)UPAGES, ROUNDUP(npages * sizeof(struct PageInfo),PGSIZE), (physaddr_t)PADDR(pages), PTE_U | PTE_P);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -202,6 +204,7 @@ mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir, (uintptr_t)KSTACKTOP-KSTKSIZE, (size_t)KSTKSIZE, (physaddr_t)PADDR(bootstack), PTE_W|PTE_P);	
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -211,7 +214,9 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
+	boot_map_region(kern_pgdir, (uintptr_t)KERNBASE, 65536*PGSIZE, (physaddr_t)0x0, PTE_W|PTE_P);
 
+	// check phys mem
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
 
@@ -389,7 +394,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 		pg->pp_ref++;
 		pd_val = page2pa(pg);
 		*pd_entry = (PTE_ADDR(pd_val) | PTE_P | PTE_W | PTE_U);
-	/*	cprintf("\n pgdir is %p", pgdir);
+/*		cprintf("\n pgdir is %p", pgdir);
 		cprintf("\n pg_entry is %p", pd_entry);
 		cprintf("\n pgdir[0] is %u", *pgdir);
 		cprintf("\n*pd_entry==%u", *pd_entry);
@@ -415,16 +420,20 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 //
 // Hint: the TA solution uses pgdir_walk
 static void
-boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
+boot_map_region(pde_t *pgdir, uintptr_t va, uint32_t size, physaddr_t pa, int perm)
 {
-	uintptr_t lim = va + size;
-	while(va < lim){
+	uintptr_t lim = va + size -1;
+	while(va <= lim){
 		pte_t *curr_page = pgdir_walk(pgdir, (void*) va, 1);
 
 		*curr_page  =  (pa & ~0xfff) | perm | PTE_P;
-		
-		va += PGSIZE;
-		pa += PGSIZE;
+
+		if(va < va + PGSIZE){
+			va += PGSIZE;
+			pa += PGSIZE;
+		}
+		else
+			break;
 	}
 }
 
