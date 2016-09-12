@@ -28,6 +28,8 @@ void int_ali();
 void int_mch();
 void int_sim();
 
+void int_sys_call();
+
 static struct Taskstate ts;
 
 /* For debugging, so print_trapframe can distinguish between printing
@@ -84,10 +86,9 @@ trap_init(void)
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
-	SETGATE(idt[0],  1, GD_KT, &int_div, 0);
 	SETGATE(idt[1],  1, GD_KT, &int_deb, 0);
 	SETGATE(idt[2],  1, GD_KT, &int_nmi, 0);
-	SETGATE(idt[3],  1, GD_KT, &int_brk, 0);
+	SETGATE(idt[3],  1, GD_KT, &int_brk, 3);
 	SETGATE(idt[4],  1, GD_KT, &int_ofl, 0);
 	SETGATE(idt[5],  1, GD_KT, &int_bou, 0);
 	SETGATE(idt[6],  1, GD_KT, &int_ill, 0);
@@ -103,10 +104,7 @@ trap_init(void)
 	SETGATE(idt[18], 1, GD_KT, &int_mch, 0);
 	SETGATE(idt[19], 1, GD_KT, &int_sim, 0);
 
-	// cprintf("\n%p", &int_div);
-	// cprintf("\n%p", &int_deb);
-
-	// lidt(&idt_pd);
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, &int_sys_call, 3);
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -185,11 +183,23 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
-	if(tf->tf_trapno == 14){
-		page_fault_handler(tf);	
-		return;
+	switch(tf->tf_trapno){
+		case 14:	page_fault_handler(tf);	
+					return;
+		case  3:    monitor(tf);
+					return;
+		case 48:	uint32_t cno, a1, a2, a3, a4, a5, ret;
+					asm volatile(: "=a" (cno),
+						"=d" (a1),
+						"=c" (a2),
+						"=b" (a3),
+						"=D" (a4),
+						"=S" (a5),
+						: :);
+					ret = syscall(cno, a1, a2, a3, a4, a5);
+					asm volatile(::"a" (ret):);
+					return;
 	}
-
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
@@ -218,7 +228,6 @@ trap(struct Trapframe *tf)
 	if ((tf->tf_cs & 3) == 3) {
 		// Trapped from user mode.
 		assert(curenv);
-
 		// Copy trap frame (which is currently on the stack)
 		// into 'curenv->env_tf', so that running the environment
 		// will restart at the trap point.
