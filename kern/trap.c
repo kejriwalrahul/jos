@@ -186,21 +186,22 @@ trap_dispatch(struct Trapframe *tf)
 	var++;
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+	uint32_t cno, a1, a2, a3, a4, a5, ret;
 	switch(tf->tf_trapno){
 		case 14:	page_fault_handler(tf);	
 					return;
 		case  3:    monitor(tf);
 					return;
-		case 48:	uint32_t cno, a1, a2, a3, a4, a5, ret;
-					asm volatile(: "=a" (cno),
+		case 48:	asm volatile("": "=a" (cno),
 						"=d" (a1),
 						"=c" (a2),
 						"=b" (a3),
 						"=D" (a4),
-						"=S" (a5),
-						: :);
+						"=S" (a5)
+						:
+						:);
 					ret = syscall(cno, a1, a2, a3, a4, a5);
-					asm volatile(::"a" (ret):);
+					asm volatile(""::"a" (ret):);
 					return;
 	}
 

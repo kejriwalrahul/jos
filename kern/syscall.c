@@ -73,8 +73,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	// panic("syscall not implemented");
 
 	switch (syscallno) {
-	case SYS_puts:
-		sys_puts(a1,a2);
+	case SYS_cputs:
+		sys_cputs((char*)a1,a2);
 		return 0;
 	case SYS_cgetc:
 		return sys_cgetc();
