@@ -27,6 +27,7 @@ void int_fpe();
 void int_ali();
 void int_mch();
 void int_sim();
+void int_sys();
 
 void int_sys_call();
 
@@ -103,6 +104,7 @@ trap_init(void)
 	SETGATE(idt[17], 1, GD_KT, &int_ali, 0);
 	SETGATE(idt[18], 1, GD_KT, &int_mch, 0);
 	SETGATE(idt[19], 1, GD_KT, &int_sim, 0);
+	SETGATE(idt[48], 1, GD_KT, &int_sys, 3);
 
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, &int_sys_call, 3);
 
@@ -177,10 +179,11 @@ print_regs(struct PushRegs *regs)
 	cprintf("  ecx  0x%08x\n", regs->reg_ecx);
 	cprintf("  eax  0x%08x\n", regs->reg_eax);
 }
-
+static int var = 0;
 static void
 trap_dispatch(struct Trapframe *tf)
 {
+	var++;
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
 	switch(tf->tf_trapno){
@@ -203,9 +206,10 @@ trap_dispatch(struct Trapframe *tf)
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
-	if (tf->tf_cs == GD_KT)
+	if (tf->tf_cs == GD_KT) {
 		panic("unhandled trap in kernel");
-	else {
+	} else {
+		cprintf("\nhello %d %p %p\n", var, tf->tf_cs, GD_KT);
 		env_destroy(curenv);
 		return;
 	}
