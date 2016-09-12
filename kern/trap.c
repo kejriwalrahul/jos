@@ -9,6 +9,25 @@
 #include <kern/env.h>
 #include <kern/syscall.h>
 
+void int_div();
+void int_deb();
+void int_nmi();
+void int_brk();
+void int_ofl();
+void int_bou();
+void int_ill();
+void int_dev();
+void int_dbl();
+void int_tss();
+void int_seg();
+void int_sta();
+void int_gpf();
+void int_pgf();
+void int_fpe();
+void int_ali();
+void int_mch();
+void int_sim();
+
 static struct Taskstate ts;
 
 /* For debugging, so print_trapframe can distinguish between printing
@@ -65,6 +84,29 @@ trap_init(void)
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
+	SETGATE(idt[0],  1, GD_KT, &int_div, 0);
+	SETGATE(idt[1],  1, GD_KT, &int_deb, 0);
+	SETGATE(idt[2],  1, GD_KT, &int_nmi, 0);
+	SETGATE(idt[3],  1, GD_KT, &int_brk, 0);
+	SETGATE(idt[4],  1, GD_KT, &int_ofl, 0);
+	SETGATE(idt[5],  1, GD_KT, &int_bou, 0);
+	SETGATE(idt[6],  1, GD_KT, &int_ill, 0);
+	SETGATE(idt[7],  1, GD_KT, &int_dev, 0);
+	SETGATE(idt[8],  1, GD_KT, &int_dbl, 0);
+	SETGATE(idt[10], 1, GD_KT, &int_tss, 0);
+	SETGATE(idt[11], 1, GD_KT, &int_seg, 0);
+	SETGATE(idt[12], 1, GD_KT, &int_sta, 0);
+	SETGATE(idt[13], 1, GD_KT, &int_gpf, 0);
+	SETGATE(idt[14], 1, GD_KT, &int_pgf, 0);
+	SETGATE(idt[16], 1, GD_KT, &int_fpe, 0);
+	SETGATE(idt[17], 1, GD_KT, &int_ali, 0);
+	SETGATE(idt[18], 1, GD_KT, &int_mch, 0);
+	SETGATE(idt[19], 1, GD_KT, &int_sim, 0);
+
+	// cprintf("\n%p", &int_div);
+	// cprintf("\n%p", &int_deb);
+
+	// lidt(&idt_pd);
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -143,6 +185,11 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+	if(tf->tf_trapno == 14){
+		page_fault_handler(tf);	
+		return;
+	}
+
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
