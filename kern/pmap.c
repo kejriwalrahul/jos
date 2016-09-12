@@ -588,28 +588,23 @@ static uintptr_t user_mem_check_addr;
 int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
-	// LAB 3: Your code here
-		uint32_t btm = ROUNDDOWN((uint32_t)va,PGSIZE);
-		uint32_t tp ;
-		if (((uint32_t)va+len) % PGSIZE == 0) {
-			tp = ROUNDUP((uint32_t)va+len, PGSIZE)+1;
-		} else {
-			tp = ROUNDUP((uint32_t)va+len, PGSIZE);
-		}
-		uint32_t i;
-		pte_t *tpage = NULL;
-		for (i=btm; i<tp; i=i+PGSIZE) {
-			tpage = pgdir_walk(env->env_pgdir, (void*)i, 0);
-			if (i>=ULIM || !(((*tpage) & (perm | PTE_P)) == (perm | PTE_P))) {
-				if (i==btm) {
-					user_mem_check_addr = (uint32_t)va;
-				} else {
-					user_mem_check_addr = i;
-				}
-				return -E_FAULT;
+	// LAB 3: Your code here.
+	uint32_t btm = ROUNDDOWN((uint32_t) va, PGSIZE);
+	uint32_t tp  = ROUNDUP((uint32_t)va+len, PGSIZE);
 
+	uint32_t i;
+	pte_t *tpage = NULL;
+	for (i=btm; i<tp; i=i+PGSIZE) {
+		tpage = pgdir_walk(env->env_pgdir, (void*)i, 0);
+		if (i>=ULIM || !tpage || !(((*tpage) & (perm | PTE_P)) == (perm | PTE_P))) {
+			if (i==btm) {
+				user_mem_check_addr = (uint32_t)va;
+			} else {
+				user_mem_check_addr = i;
 			}
-		}
+			return -E_FAULT;
+			}
+	}
     return 0;
 }
 
