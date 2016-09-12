@@ -1,2 +1,5 @@
-# jos
-Working project on OS construction
+# JOS
+
+MIT Operating Systems Coursework
+
+In Progress
