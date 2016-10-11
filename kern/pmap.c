@@ -329,7 +329,13 @@ page_init(void)
 	pages[0].pp_ref  = 1;
 	pages[0].pp_link = NULL;
 
+	struct PageInfo* mpentry_page = pa2page(MPENTRY_PADDR);
+	mpentry_page->pp_ref = 1;
+	mpentry_page->pp_link = NULL;
 	for (i = 1; i < npages_basemem; i++) {
+		if(&pages[i] == mpentry_page)
+			continue;
+
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
@@ -631,10 +637,12 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	size = ROUNDUP(size, PGSIZE)
+	size = ROUNDUP(size, PGSIZE);
 	if(base + size >= MMIOLIM)
 		panic("overflow at mmio_map_region");
-	boot_map_region(kern_pgdir, )
+	boot_map_region(kern_pgdir, base, size, pa, PTE_PWT | PTE_PCD | PTE_W);
+	base += size;
+	return (void *)(base-size);
 	// panic("mmio_map_region not implemented");
 }
 
