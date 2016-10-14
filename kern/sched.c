@@ -29,6 +29,25 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// LAB 4: Your code here.
+	int i, curr;
+	// cprintf("\ncalled at %p\n", thiscpu->cpu_env);
+	if(thiscpu->cpu_env == 0)
+		curr = -1;
+	else{
+		// cprintf("\nhere at %d\n", thiscpu->cpu_env->env_id);
+		// cprintf("\n1000 at %d\n", envs[1000].env_status);
+		curr = ENVX(thiscpu->cpu_env->env_id);
+	}
+
+	for(i=curr+1; i<NENV;i++)
+		if(envs[i].env_status == ENV_RUNNABLE)
+			env_run(&envs[i]);
+	for(i=0; i<curr; i++)
+		if(envs[i].env_status == ENV_RUNNABLE)
+			env_run(&envs[i]);
+
+	if(envs[curr].env_status == ENV_RUNNING)
+		env_run(&envs[curr]);
 
 	// sched_halt never returns
 	sched_halt();
