@@ -84,7 +84,16 @@ sys_exofork(void)
 	// will appear to return 0.
 
 	// LAB 4: Your code here.
-	panic("sys_exofork not implemented");
+	struct Env *e;
+	int res = env_alloc(&e, thiscpu->cpu_env->env_id);
+	if(res < 0)		return res;
+	e->env_status = ENV_NOT_RUNNABLE;
+	// memcpy(&(e->env_tf.tf_regs), &(thiscpu->cpu_env->env_tf.tf_regs), sizeof(struct PushRegs));
+	memcpy(&(e->env_tf), &(thiscpu->cpu_env->env_tf), sizeof(struct Trapframe));
+	e->env_tf.tf_regs.reg_eax = 0;
+
+	return e->env_id;
+	// panic("sys_exofork not implemented");
 }
 
 // Set envid's env_status to status, which must be ENV_RUNNABLE
@@ -102,9 +111,19 @@ sys_env_set_status(envid_t envid, int status)
 	// You should set envid2env's third argument to 1, which will
 	// check whether the current environment has permission to set
 	// envid's status.
+	
+	struct Env *e;
+	int res = envid2env(envid, &e, 1);
+	if(res < 0)		return res;
+
+	if(e->env_status != ENV_RUNNABLE && e->env_status != ENV_RUNNING && e->env_status != ENV_NOT_RUNNABLE)
+		return -E_INVAL;
+
+	e->env_status = status;
+	return 0;
 
 	// LAB 4: Your code here.
-	panic("sys_env_set_status not implemented");
+	// panic("sys_env_set_status not implemented");
 }
 
 // Set the page fault upcall for 'envid' by modifying the corresponding struct
@@ -148,8 +167,26 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	//   If page_insert() fails, remember to free the page you
 	//   allocated!
 
+	struct Env *e;
+	int res = envid2env(envid, &e, 1);
+	if(res < 0)		return res;
+	if((uintptr_t)va >= UTOP || va != ROUNDDOWN(va, PGSIZE))	return -E_INVAL;
+	if((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)) != 0) 		return -E_INVAL;
+	if((perm & (PTE_U | PTE_P)) == 0)								return -E_INVAL;
+
+	struct PageInfo *p = page_alloc(ALLOC_ZERO);
+	if(!p)		return -E_NO_MEM;
+	
+	res = page_insert(e->env_pgdir, p, va, perm);
+	if(res < 0)	{
+		page_free(p);
+		return res;
+	}
+
+	return 0;
+
 	// LAB 4: Your code here.
-	panic("sys_page_alloc not implemented");
+	// panic("sys_page_alloc not implemented");
 }
 
 // Map the page of memory at 'srcva' in srcenvid's address space
@@ -178,9 +215,25 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	//   parameters for correctness.
 	//   Use the third argument to page_lookup() to
 	//   check the current permissions on the page.
+	struct Env *src, *dest;
+	if (envid2env(srcenvid, &src, 1)<0 || envid2env(dstenvid, &dest, 1) < 0)
+		return -E_BAD_ENV;
+	if((uintptr_t)srcva >= UTOP || srcva != ROUNDDOWN(srcva, PGSIZE) || (uintptr_t)dstva >= UTOP || dstva != ROUNDDOWN(dstva, PGSIZE))
+		return -E_INVAL;
+
+	pte_t *src_pg_table_entry;
+	struct PageInfo *pg = page_lookup(src->env_pgdir, srcva, &src_pg_table_entry);
+	if(!pg)		return -E_INVAL;
+
+	if((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)) != 0) 	return -E_INVAL;
+	if((perm & (PTE_U | PTE_P)) == 0)						return -E_INVAL; 
+	if((perm & PTE_W) && !(*src_pg_table_entry & PTE_W))		return -E_INVAL;
+
+	if (page_insert(dest->env_pgdir, pg, dstva, perm) < 0)	return -E_NO_MEM;
+	return 0;
 
 	// LAB 4: Your code here.
-	panic("sys_page_map not implemented");
+	// panic("sys_page_map not implemented");
 }
 
 // Unmap the page of memory at 'va' in the address space of 'envid'.
@@ -194,9 +247,14 @@ static int
 sys_page_unmap(envid_t envid, void *va)
 {
 	// Hint: This function is a wrapper around page_remove().
+	struct Env *e;
+	if(envid2env(envid, &e, 1) < 0)		return -E_BAD_ENV; 
+	if((uintptr_t)va >= UTOP)			return -E_INVAL;
 
+	page_remove(e->env_pgdir, va);
+	return 0;
 	// LAB 4: Your code here.
-	panic("sys_page_unmap not implemented");
+	// panic("sys_page_unmap not implemented");
 }
 
 // Try to send 'value' to the target env 'envid'.
@@ -286,6 +344,16 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	case SYS_yield:
 		sys_yield();
 		return 0;
+	case SYS_exofork:
+		return sys_exofork();
+	case SYS_env_set_status:
+		return sys_env_set_status((envid_t)a1, a2);
+	case SYS_page_alloc:
+		return sys_page_alloc((envid_t)a1, (void*) a2, a3);
+	case SYS_page_map:
+		return sys_page_map((envid_t)a1, (void*) a2, (envid_t)a3, (void*) a4, a5);
+	case SYS_page_unmap:
+		return sys_page_unmap((envid_t)a1, (void*)a2);
 	default:
 		return -E_NO_SYS;
 	}
