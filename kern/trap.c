@@ -383,8 +383,7 @@ page_fault_handler(struct Trapframe *tf)
 		memmove((void*)(uxstack - sizeof(struct UTrapframe)), &utf, sizeof(struct UTrapframe));
 		
 		tf->tf_eip = (int)curenv->env_pgfault_upcall;
-		tf->tf_esp = (int)uxstack;
-		// cprintf("\nhere6\n");
+		tf->tf_esp = (uxstack - sizeof(struct UTrapframe));
 		env_run(curenv);
 	}
 
