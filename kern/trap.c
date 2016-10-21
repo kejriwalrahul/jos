@@ -36,6 +36,23 @@ void int_sim();
 
 void int_sys_call();
 
+void int_irq0();
+void int_irq1();
+void int_irq2();
+void int_irq3();
+void int_irq4();
+void int_irq5();
+void int_irq6();
+void int_irq7();
+void int_irq8();
+void int_irq9();
+void int_irq10();
+void int_irq11();
+void int_irq12();
+void int_irq13();
+void int_irq14();
+void int_irq15();
+
 static struct Taskstate ts;
 
 /* For debugging, so print_trapframe can distinguish between printing
@@ -94,26 +111,43 @@ trap_init(void)
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
-	SETGATE(idt[0],  1, GD_KT, &int_div, 0);
-	SETGATE(idt[1],  1, GD_KT, &int_deb, 0);
-	SETGATE(idt[2],  1, GD_KT, &int_nmi, 0);
-	SETGATE(idt[3],  1, GD_KT, &int_brk, 3);
-	SETGATE(idt[4],  1, GD_KT, &int_ofl, 0);
-	SETGATE(idt[5],  1, GD_KT, &int_bou, 0);
-	SETGATE(idt[6],  1, GD_KT, &int_ill, 0);
-	SETGATE(idt[7],  1, GD_KT, &int_dev, 0);
-	SETGATE(idt[8],  1, GD_KT, &int_dbl, 0);
-	SETGATE(idt[10], 1, GD_KT, &int_tss, 0);
-	SETGATE(idt[11], 1, GD_KT, &int_seg, 0);
-	SETGATE(idt[12], 1, GD_KT, &int_sta, 0);
-	SETGATE(idt[13], 1, GD_KT, &int_gpf, 0);
-	SETGATE(idt[14], 1, GD_KT, &int_pgf, 0);
-	SETGATE(idt[16], 1, GD_KT, &int_fpe, 0);
-	SETGATE(idt[17], 1, GD_KT, &int_ali, 0);
-	SETGATE(idt[18], 1, GD_KT, &int_mch, 0);
-	SETGATE(idt[19], 1, GD_KT, &int_sim, 0);
+	SETGATE(idt[0],  0, GD_KT, &int_div, 0);
+	SETGATE(idt[1],  0, GD_KT, &int_deb, 0);
+	SETGATE(idt[2],  0, GD_KT, &int_nmi, 0);
+	SETGATE(idt[3],  0, GD_KT, &int_brk, 3);
+	SETGATE(idt[4],  0, GD_KT, &int_ofl, 0);
+	SETGATE(idt[5],  0, GD_KT, &int_bou, 0);
+	SETGATE(idt[6],  0, GD_KT, &int_ill, 0);
+	SETGATE(idt[7],  0, GD_KT, &int_dev, 0);
+	SETGATE(idt[8],  0, GD_KT, &int_dbl, 0);
+	SETGATE(idt[10], 0, GD_KT, &int_tss, 0);
+	SETGATE(idt[11], 0, GD_KT, &int_seg, 0);
+	SETGATE(idt[12], 0, GD_KT, &int_sta, 0);
+	SETGATE(idt[13], 0, GD_KT, &int_gpf, 0);
+	SETGATE(idt[14], 0, GD_KT, &int_pgf, 0);
+	SETGATE(idt[16], 0, GD_KT, &int_fpe, 0);
+	SETGATE(idt[17], 0, GD_KT, &int_ali, 0);
+	SETGATE(idt[18], 0, GD_KT, &int_mch, 0);
+	SETGATE(idt[19], 0, GD_KT, &int_sim, 0);
 
 	SETGATE(idt[T_SYSCALL], 0, GD_KT, &int_sys_call, 3);
+
+	SETGATE(idt[32], 0, GD_KT, &int_irq0, 0);
+	SETGATE(idt[33], 0, GD_KT, &int_irq1, 0);
+	SETGATE(idt[34], 0, GD_KT, &int_irq2, 0);
+	SETGATE(idt[35], 0, GD_KT, &int_irq3, 0);
+	SETGATE(idt[36], 0, GD_KT, &int_irq4, 0);
+	SETGATE(idt[37], 0, GD_KT, &int_irq5, 0);
+	SETGATE(idt[38], 0, GD_KT, &int_irq6, 0);
+	SETGATE(idt[39], 0, GD_KT, &int_irq7, 0);
+	SETGATE(idt[40], 0, GD_KT, &int_irq8, 0);
+	SETGATE(idt[41], 0, GD_KT, &int_irq9, 0);
+	SETGATE(idt[42], 0, GD_KT, &int_irq10, 0);
+	SETGATE(idt[43], 0, GD_KT, &int_irq11, 0);
+	SETGATE(idt[44], 0, GD_KT, &int_irq12, 0);
+	SETGATE(idt[45], 0, GD_KT, &int_irq13, 0);
+	SETGATE(idt[46], 0, GD_KT, &int_irq14, 0);
+	SETGATE(idt[47], 0, GD_KT, &int_irq15, 0);
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -241,6 +275,10 @@ trap_dispatch(struct Trapframe *tf)
 	// Handle clock interrupts. Don't forget to acknowledge the
 	// interrupt using lapic_eoi() before calling the scheduler!
 	// LAB 4: Your code here.
+	if(tf->tf_trapno == 32){
+		lapic_eoi();
+		sched_yield();
+	}
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
@@ -271,6 +309,7 @@ trap(struct Trapframe *tf)
 	// Check that interrupts are disabled.  If this assertion
 	// fails, DO NOT be tempted to fix it by inserting a "cli" in
 	// the interrupt path.
+	// cprintf("stat %p %d\n", read_eflags() & FL_IF, tf->tf_trapno);
 	assert(!(read_eflags() & FL_IF));
 
 	if ((tf->tf_cs & 3) == 3) {
@@ -325,6 +364,7 @@ page_fault_handler(struct Trapframe *tf)
 
 	// LAB 3: Your code here.
 	if (!(tf->tf_cs & 0x3)) {
+		cprintf("Faulting va %p\n", fault_va);
 		panic("page fault at kernel mode");
 	}
 	// We've already handled kernel-mode exceptions, so if we get here,
@@ -370,9 +410,7 @@ page_fault_handler(struct Trapframe *tf)
 			uxstack -= 4;
 		}
 
-		// cprintf("%p here %p %p\n", curenv->env_id,(uxstack - sizeof(struct UTrapframe)), (uxstack - sizeof(struct UTrapframe))+sizeof(struct UTrapframe));
 		user_mem_assert(curenv, (void*)(uxstack - sizeof(struct UTrapframe)), sizeof(struct UTrapframe), PTE_W | PTE_U | PTE_P);
-		// cprintf("here 2\n");
 		
 		struct UTrapframe utf;
 		utf.utf_fault_va = fault_va;
