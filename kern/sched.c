@@ -50,6 +50,7 @@ sched_yield(void)
 		env_run(&envs[curr]);
 
 	// sched_halt never returns
+	// cprintf("here\n");
 	sched_halt();
 }
 
