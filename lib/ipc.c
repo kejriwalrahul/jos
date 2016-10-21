@@ -24,6 +24,7 @@ ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 {
 	// LAB 4: Your code here.
 	
+	// cprintf("receiver set\n");
 	int res;
 	if(pg)	res = sys_ipc_recv(pg);
 	else	res = sys_ipc_recv((void*)(UTOP + PGSIZE));
@@ -59,10 +60,11 @@ ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 
 	int res;
 	while(true){
+		// cprintf("sending\n");
 		if(pg)		res = sys_ipc_try_send(to_env, val, pg, perm);
 		else		res = sys_ipc_try_send(to_env, val, (void*)(UTOP + PGSIZE), 0);
 	
-		if(res < 0 && res != -E_IPC_NOT_RECV)	panic("failure at ipc_send");
+		if(res < 0 && res != -E_IPC_NOT_RECV)	{ /*cprintf("stat %d\n",res);*/ panic("failure at ipc_send");}
 
 		if(res > 0)								return;
 		sys_yield();
