@@ -142,6 +142,8 @@ sys_env_set_pgfault_upcall(envid_t envid, void *func)
 	if(envid2env(envid, &e, 1) < 0)
 		return -E_BAD_ENV;
 
+	user_mem_assert(e, func, PGSIZE, PTE_U | PTE_P);
+
 	e->env_pgfault_upcall = func;
 	return 0;
 
@@ -225,16 +227,17 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	struct Env *src, *dest;
 	if (envid2env(srcenvid, &src, 1)<0 || envid2env(dstenvid, &dest, 1) < 0)
 		return -E_BAD_ENV;
-	if((uintptr_t)srcva >= UTOP || srcva != ROUNDDOWN(srcva, PGSIZE) || (uintptr_t)dstva >= UTOP || dstva != ROUNDDOWN(dstva, PGSIZE))
+	if((uintptr_t)srcva >= UTOP || srcva != ROUNDDOWN(srcva, PGSIZE) || (uintptr_t)dstva >= UTOP || dstva != ROUNDDOWN(dstva, PGSIZE)){
 		return -E_INVAL;
+	}
 
 	pte_t *src_pg_table_entry;
 	struct PageInfo *pg = page_lookup(src->env_pgdir, srcva, &src_pg_table_entry);
 	if(!pg)		return -E_INVAL;
 
-	if((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)) != 0) 	return -E_INVAL;
-	if((perm & (PTE_U | PTE_P)) == 0)						return -E_INVAL; 
-	if((perm & PTE_W) && !(*src_pg_table_entry & PTE_W))		return -E_INVAL;
+	if((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)) != 0) 	{return -E_INVAL;}
+	if((perm & (PTE_U | PTE_P)) == 0)						{return -E_INVAL;} 
+	if((perm & PTE_W) && !(*src_pg_table_entry & PTE_W))	{return -E_INVAL;}
 
 	if (page_insert(dest->env_pgdir, pg, dstva, perm) < 0)	return -E_NO_MEM;
 	return 0;

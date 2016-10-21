@@ -360,7 +360,7 @@ page_fault_handler(struct Trapframe *tf)
 
 	// LAB 4: Your code here.
 	if(curenv->env_pgfault_upcall){
-		int uxstack = UXSTACKTOP;
+		int uxstack = UXSTACKTOP-1;
 		
 		if(tf->tf_esp > USTACKTOP && tf->tf_esp < UXSTACKTOP - PGSIZE)
 			goto error;
@@ -370,21 +370,22 @@ page_fault_handler(struct Trapframe *tf)
 			uxstack -= 4;
 		}
 
+		// cprintf("%p here %p %p\n", curenv->env_id,(uxstack - sizeof(struct UTrapframe)), (uxstack - sizeof(struct UTrapframe))+sizeof(struct UTrapframe));
 		user_mem_assert(curenv, (void*)(uxstack - sizeof(struct UTrapframe)), sizeof(struct UTrapframe), PTE_W | PTE_U | PTE_P);
+		// cprintf("here 2\n");
 		
 		struct UTrapframe utf;
 		utf.utf_fault_va = fault_va;
-		utf.utf_err  = tf->tf_err;
-		utf.utf_regs = tf->tf_regs;
-		utf.utf_eip  = tf->tf_eip;
-		utf.utf_eflags  = tf->tf_eflags;
-		utf.utf_esp  = tf->tf_esp;
+		utf.utf_err  	 = tf->tf_err;
+		utf.utf_regs 	 = tf->tf_regs;
+		utf.utf_eip  	 = tf->tf_eip;
+		utf.utf_eflags   = tf->tf_eflags;
+		utf.utf_esp  	 = tf->tf_esp;
 
 		memmove((void*)(uxstack - sizeof(struct UTrapframe)), &utf, sizeof(struct UTrapframe));
 		
 		tf->tf_eip = (int)curenv->env_pgfault_upcall;
-		tf->tf_esp = (int)uxstack;
-		// cprintf("\nhere6\n");
+		tf->tf_esp = (uxstack - sizeof(struct UTrapframe));
 		env_run(curenv);
 	}
 
