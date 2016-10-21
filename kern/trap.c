@@ -179,11 +179,11 @@ trap_init_percpu(void)
 	// user space on that CPU.
 	//
 	// LAB 4: Your code here:
-	int i;
+	int i = cpunum();
 
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
-	for(i=0; i<NCPU; i++){
+	// for(i=0; i<NCPU; i++){
 		thiscpu->cpu_ts.ts_esp0 = KSTACKTOP - i*(KSTKSIZE + KSTKGAP);
 		thiscpu->cpu_ts.ts_ss0  = GD_KD;
 
@@ -198,7 +198,7 @@ trap_init_percpu(void)
 
 		// Load the IDT
 		lidt(&idt_pd);
-	}
+	// }
 }
 
 void
