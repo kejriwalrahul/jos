@@ -212,15 +212,9 @@ debuginfo_eip(uintptr_t addr, struct Eipdebuginfo *info)
 	//	which one.
 	// Your code here.
 
-	int tl = lline, tr = rline;
-	stab_binsearch(stabs, &tl, &tr, N_SLINE, addr);
-	// cprintf("bounds: %d %d\n", tl, tr);
-	if(tr < tl){
-		return -1;
-	}
-	info->eip_line = stabs[(tl + tr)/2].n_value;
-	// lline = tl;
-	// rline = tr;
+	stab_binsearch(stabs, &lline, &rline, N_SLINE, addr);
+	if (rline >= lline)
+		info->eip_line = stabs[lline].n_desc;
 
 	// Search backwards from the line number for the relevant filename
 	// stab.

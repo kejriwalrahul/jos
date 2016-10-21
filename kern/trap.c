@@ -257,9 +257,8 @@ trap_dispatch(struct Trapframe *tf)
 					return;
 		case  3:    monitor(tf);
 					return;
-		case 48:	
-			tf->tf_regs.reg_eax = syscall(tf->tf_regs.reg_eax,tf->tf_regs.reg_edx,tf->tf_regs.reg_ecx,
-				tf->tf_regs.reg_ebx,tf->tf_regs.reg_edi,tf->tf_regs.reg_esi);
+		case 48:	tf->tf_regs.reg_eax = syscall(tf->tf_regs.reg_eax,tf->tf_regs.reg_edx,tf->tf_regs.reg_ecx,
+						tf->tf_regs.reg_ebx,tf->tf_regs.reg_edi,tf->tf_regs.reg_esi);
 					return;
 	}
 
@@ -365,6 +364,7 @@ page_fault_handler(struct Trapframe *tf)
 	// LAB 3: Your code here.
 	if (!(tf->tf_cs & 0x3)) {
 		// cprintf("Faulting va %p\n", fault_va);
+		print_trapframe(tf);
 		panic("page fault at kernel mode");
 	}
 	// We've already handled kernel-mode exceptions, so if we get here,
