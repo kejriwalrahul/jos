@@ -364,7 +364,7 @@ page_fault_handler(struct Trapframe *tf)
 
 	// LAB 3: Your code here.
 	if (!(tf->tf_cs & 0x3)) {
-		cprintf("Faulting va %p\n", fault_va);
+		// cprintf("Faulting va %p\n", fault_va);
 		panic("page fault at kernel mode");
 	}
 	// We've already handled kernel-mode exceptions, so if we get here,
