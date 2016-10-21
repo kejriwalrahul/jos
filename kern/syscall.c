@@ -138,7 +138,16 @@ static int
 sys_env_set_pgfault_upcall(envid_t envid, void *func)
 {
 	// LAB 4: Your code here.
-	panic("sys_env_set_pgfault_upcall not implemented");
+	struct Env *e;
+	if(envid2env(envid, &e, 1) < 0)
+		return -E_BAD_ENV;
+
+	user_mem_assert(e, func, PGSIZE, PTE_U | PTE_P);
+
+	e->env_pgfault_upcall = func;
+	return 0;
+
+	// panic("sys_env_set_pgfault_upcall not implemented");
 }
 
 // Allocate a page of memory and map it at 'va' with permission
@@ -218,16 +227,17 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	struct Env *src, *dest;
 	if (envid2env(srcenvid, &src, 1)<0 || envid2env(dstenvid, &dest, 1) < 0)
 		return -E_BAD_ENV;
-	if((uintptr_t)srcva >= UTOP || srcva != ROUNDDOWN(srcva, PGSIZE) || (uintptr_t)dstva >= UTOP || dstva != ROUNDDOWN(dstva, PGSIZE))
+	if((uintptr_t)srcva >= UTOP || srcva != ROUNDDOWN(srcva, PGSIZE) || (uintptr_t)dstva >= UTOP || dstva != ROUNDDOWN(dstva, PGSIZE)){
 		return -E_INVAL;
+	}
 
 	pte_t *src_pg_table_entry;
 	struct PageInfo *pg = page_lookup(src->env_pgdir, srcva, &src_pg_table_entry);
 	if(!pg)		return -E_INVAL;
 
-	if((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)) != 0) 	return -E_INVAL;
-	if((perm & (PTE_U | PTE_P)) == 0)						return -E_INVAL; 
-	if((perm & PTE_W) && !(*src_pg_table_entry & PTE_W))		return -E_INVAL;
+	if((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)) != 0) 	{return -E_INVAL;}
+	if((perm & (PTE_U | PTE_P)) == 0)						{return -E_INVAL;} 
+	if((perm & PTE_W) && !(*src_pg_table_entry & PTE_W))	{return -E_INVAL;}
 
 	if (page_insert(dest->env_pgdir, pg, dstva, perm) < 0)	return -E_NO_MEM;
 	return 0;
@@ -354,6 +364,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_page_map((envid_t)a1, (void*) a2, (envid_t)a3, (void*) a4, a5);
 	case SYS_page_unmap:
 		return sys_page_unmap((envid_t)a1, (void*)a2);
+	case SYS_env_set_pgfault_upcall:
+		return sys_env_set_pgfault_upcall((envid_t)a1, (void*)a2);
 	default:
 		return -E_NO_SYS;
 	}
