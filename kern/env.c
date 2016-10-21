@@ -119,7 +119,7 @@ env_init(void)
 {
 	// Set up envs array
 	// LAB 3: Your code here.
-	memset(envs, 0, sizeof(char));
+	memset(envs, 0, sizeof(struct Env)*NENV);
 	
 	// Set last to NULL
 	envs[NENV-1].env_link = NULL;
