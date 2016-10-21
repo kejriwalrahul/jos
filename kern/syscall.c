@@ -181,7 +181,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	if(res < 0)		return res;
 	if((uintptr_t)va >= UTOP || va != ROUNDDOWN(va, PGSIZE))	return -E_INVAL;
 	if((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)) != 0) 		return -E_INVAL;
-	if((perm & (PTE_U | PTE_P)) == 0)								return -E_INVAL;
+	if((perm & (PTE_U | PTE_P)) == 0)							return -E_INVAL;
 
 	struct PageInfo *p = page_alloc(ALLOC_ZERO);
 	if(!p)		return -E_NO_MEM;
@@ -309,7 +309,41 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_try_send not implemented");
+	struct Env *e;
+	if(envid2env(envid, &e, 0) < 0)		return -E_BAD_ENV; 
+	if(e->env_ipc_recving == 0)			return -E_IPC_NOT_RECV;
+	
+	// if valid addresses
+	if((int)srcva < UTOP){
+		if(srcva != ROUNDDOWN(srcva, PGSIZE))					return -E_INVAL;
+		// permission checking
+		if((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)) != 0) 		return -E_INVAL;
+		if((perm & (PTE_U | PTE_P)) == 0)							return -E_INVAL;
+		
+		pte_t *src_pg_table_entry = (pte_t*)1;
+		struct PageInfo *pg = page_lookup(e->env_pgdir, srcva, &src_pg_table_entry);
+		if(!pg)		return -E_INVAL;
+		if(!(*src_pg_table_entry & PTE_W) && (perm & PTE_W))		return -E_INVAL;
+		
+		if((uintptr_t) e->env_ipc_dstva < UTOP){
+			if (page_insert(e->env_pgdir, pg, e->env_ipc_dstva, perm) < 0)			return -E_NO_MEM;
+			e->env_ipc_perm = perm;
+		}
+		else
+			e->env_ipc_perm = 0;
+	}
+	else{
+		e->env_ipc_perm = 0;
+	}
+
+	e->env_ipc_value = value;
+	e->env_ipc_from  = thiscpu->cpu_env->env_id;
+	e->env_ipc_recving = 0;
+	e->env_status = ENV_RUNNABLE;
+
+	return 0;
+
+	// panic("sys_ipc_try_send not implemented");
 }
 
 // Block until a value is ready.  Record that you want to receive
@@ -327,7 +361,22 @@ static int
 sys_ipc_recv(void *dstva)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_recv not implemented");
+	struct Env *e = thiscpu->cpu_env;
+	e->env_ipc_recving = 1;
+	
+	if((uintptr_t) dstva < UTOP){
+		if(dstva != ROUNDDOWN(dstva, PGSIZE)) 	return -E_INVAL;
+		e->env_ipc_dstva   = dstva;
+	}
+	else{
+		// Prevent mapping page from sender
+		e->env_ipc_dstva   = (void*)(UTOP + PGSIZE);
+	}
+
+	e->env_status 	   = ENV_NOT_RUNNABLE;
+	sched_yield(); 
+
+	// panic("sys_ipc_recv not implemented");
 	return 0;
 }
 
