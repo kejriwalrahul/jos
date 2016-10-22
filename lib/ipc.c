@@ -35,9 +35,8 @@ ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 	}
 
 	if(from_env_store)	*from_env_store = thisenv->env_ipc_from;
-
 	if(perm_store && thisenv->env_ipc_dstva < (void*)UTOP) 	*perm_store = thisenv->env_ipc_perm;
-	else							 			    		*perm_store = 0;		
+	// else							 			    		*perm_store = 0;		
 
 	// panic("ipc_recv not implemented");
 	return thisenv->env_ipc_value;
@@ -64,7 +63,7 @@ ipc_send(envid_t to_env, uint32_t val, void *pg, int perm)
 	
 		if(res < 0 && res != -E_IPC_NOT_RECV)	{panic("failure at ipc_send");}
 
-		if(res > 0)								return;
+		if(res == 0)								return;
 		sys_yield();
 	}
 }

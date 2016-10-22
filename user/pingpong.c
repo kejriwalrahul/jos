@@ -8,7 +8,6 @@ umain(int argc, char **argv)
 {
 	envid_t who;
 
-	cprintf("beging\n");
 	if ((who = fork()) != 0) {
 		// get the ball rolling
 		cprintf("send 0 from %x to %x\n", sys_getenvid(), who);
@@ -16,7 +15,6 @@ umain(int argc, char **argv)
 	}
 
 	while (1) {
-		cprintf("in %p\n", sys_getenvid());
 		uint32_t i = ipc_recv(&who, 0, 0);
 		cprintf("%x got %d from %x\n", sys_getenvid(), i, who);
 		if (i == 10)
