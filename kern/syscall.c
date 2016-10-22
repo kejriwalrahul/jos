@@ -316,20 +316,24 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	if(envid2env(envid, &e, 0) < 0)		return -E_BAD_ENV; 
 	if(e->env_ipc_recving == 0)			return -E_IPC_NOT_RECV;
 	
+	e->env_ipc_recving = 0;
+	e->env_ipc_value = value;
+	e->env_ipc_from  = curenv->env_id;
+
 	// if valid addresses
 	if((int)srcva < UTOP){
 		if(srcva != ROUNDDOWN(srcva, PGSIZE))					return -E_INVAL;
+		
 		// permission checking
 		if((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)) != 0) 		return -E_INVAL;
-		if((perm & (PTE_U | PTE_P)) == 0)							return -E_INVAL;
+		if(!((perm & PTE_U) &&  (perm & PTE_P)))					return -E_INVAL;
 		
 		pte_t *src_pg_table_entry = (pte_t*)1;
-		struct PageInfo *pg = page_lookup(e->env_pgdir, srcva, &src_pg_table_entry);
+		struct PageInfo *pg = page_lookup(curenv->env_pgdir, srcva, &src_pg_table_entry);
 		if(!pg)		return -E_INVAL;
 		if(!(*src_pg_table_entry & PTE_W) && (perm & PTE_W))		return -E_INVAL;
 		
 		if((uintptr_t) e->env_ipc_dstva < UTOP){
-			cprintf("page inserted at %p\n", e->env_ipc_dstva);
 			if (page_insert(e->env_pgdir, pg, e->env_ipc_dstva, perm | PTE_P) < 0)			return -E_NO_MEM;
 			e->env_ipc_perm = perm;
 		}
@@ -340,9 +344,6 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 		e->env_ipc_perm = 0;
 	}
 
-	e->env_ipc_value = value;
-	e->env_ipc_from  = curenv->env_id;
-	e->env_ipc_recving = 0;
 	e->env_status = ENV_RUNNABLE;
 
 	return 0;
