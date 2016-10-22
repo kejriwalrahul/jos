@@ -25,8 +25,8 @@ ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 	// LAB 4: Your code here.
 	
 	int res;
-	if(pg)	res = sys_ipc_recv(pg);
-	else	res = sys_ipc_recv((void*)(UTOP + PGSIZE));
+	if(pg < (void*)UTOP)	res = sys_ipc_recv(pg);
+	else					res = sys_ipc_recv((void*)(UTOP + PGSIZE));
 
 	if(res < 0){
 		*from_env_store = 0;

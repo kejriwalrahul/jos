@@ -28,6 +28,7 @@ pgfault(struct UTrapframe *utf)
 
 	volatile pte_t *pt_entry = uvpt + PGNUM(addr);
 	if(!(err & FEC_WR && PTE_COW & *pt_entry)){
+		cprintf("faulting va %p is recursive %d in env %p\n", addr, utf->utf_esp < UXSTACKTOP && utf->utf_esp >= UXSTACKTOP-PGSIZE, sys_getenvid());
 		panic("Fatal error at pgfault");
 	}
 
