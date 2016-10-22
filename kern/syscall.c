@@ -329,7 +329,8 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 		if(!(*src_pg_table_entry & PTE_W) && (perm & PTE_W))		return -E_INVAL;
 		
 		if((uintptr_t) e->env_ipc_dstva < UTOP){
-			if (page_insert(e->env_pgdir, pg, e->env_ipc_dstva, perm) < 0)			return -E_NO_MEM;
+			cprintf("page inserted at %p\n", e->env_ipc_dstva);
+			if (page_insert(e->env_pgdir, pg, e->env_ipc_dstva, perm | PTE_P) < 0)			return -E_NO_MEM;
 			e->env_ipc_perm = perm;
 		}
 		else
@@ -378,6 +379,7 @@ sys_ipc_recv(void *dstva)
 	}
 
 	e->env_status 	   = ENV_NOT_RUNNABLE;
+	e->env_tf.tf_regs.reg_eax 	   = 0;
 	// cprintf("readied recieve %d %p\n", curenv->env_ipc_recving, curenv->env_id);
 	sched_yield(); 
 
@@ -394,7 +396,6 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	// LAB 3: Your code here.
 
 	// panic("syscall not implemented");
-
 	switch (syscallno) {
 	case SYS_cputs:
 		sys_cputs((char*)a1,a2);

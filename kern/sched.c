@@ -46,11 +46,11 @@ sched_yield(void)
 		if(envs[i].env_status == ENV_RUNNABLE)
 			env_run(&envs[i]);
 
+	cprintf("here %p\n", envs[curr].env_id);
 	if(envs[curr].env_status == ENV_RUNNING)
 		env_run(&envs[curr]);
 
 	// sched_halt never returns
-	// cprintf("here\n");
 	sched_halt();
 }
 

@@ -26,10 +26,8 @@ pgfault(struct UTrapframe *utf)
 
 	// LAB 4: Your code here.
 
-	// pte_t *pt = (pde_t*)UVPT + PDX(addr);
-	// pte_t *pt_entry = (pte_t*)PTE_ADDR(pt) + PTX(addr);
-
 	volatile pte_t *pt_entry = uvpt + PGNUM(addr);
+	cprintf("stat %p %p %p %p\n", err & FEC_WR, PTE_COW & *pt_entry, addr, PTE_P & *pt_entry);
 	if(!(err & FEC_WR && PTE_COW & *pt_entry)){
 		panic("Fatal error at pgfault");
 	}
