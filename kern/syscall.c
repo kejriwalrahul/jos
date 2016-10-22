@@ -20,8 +20,8 @@ sys_cputs(const char *s, size_t len)
 {
 	// Check that the user has permission to read memory [s, s+len).
 	// Destroy the environment if not.
-	user_mem_assert(curenv,s,len,PTE_U);
 	// LAB 3: Your code here.
+	user_mem_assert(curenv,s,len,PTE_U);
 
 	// Print the string supplied by the user.
 	cprintf("%.*s", len, s);
@@ -87,8 +87,8 @@ sys_exofork(void)
 	struct Env *e;
 	int res = env_alloc(&e, thiscpu->cpu_env->env_id);
 	if(res < 0)		return res;
+	
 	e->env_status = ENV_NOT_RUNNABLE;
-	// memcpy(&(e->env_tf.tf_regs), &(thiscpu->cpu_env->env_tf.tf_regs), sizeof(struct PushRegs));
 	memcpy(&(e->env_tf), &(thiscpu->cpu_env->env_tf), sizeof(struct Trapframe));
 	e->env_tf.tf_regs.reg_eax = 0;
 
@@ -181,7 +181,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	if(res < 0)		return res;
 	if((uintptr_t)va >= UTOP || va != ROUNDDOWN(va, PGSIZE))	return -E_INVAL;
 	if((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)) != 0) 		return -E_INVAL;
-	if((perm & (PTE_U | PTE_P)) == 0)							return -E_INVAL;
+	if(!((perm & PTE_U) && (perm & PTE_P)))						return -E_INVAL;
 
 	struct PageInfo *p = page_alloc(ALLOC_ZERO);
 	if(!p)		return -E_NO_MEM;
@@ -236,7 +236,7 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	if(!pg)		return -E_INVAL;
 
 	if((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)) != 0) 	{return -E_INVAL;}
-	if((perm & (PTE_U | PTE_P)) == 0)						{return -E_INVAL;} 
+	if(!((perm & PTE_U) && (perm & PTE_P)))					{return -E_INVAL;} 
 	if((perm & PTE_W) && !(*src_pg_table_entry & PTE_W))	{return -E_INVAL;}
 
 	if (page_insert(dest->env_pgdir, pg, dstva, perm) < 0)	return -E_NO_MEM;
@@ -257,13 +257,14 @@ static int
 sys_page_unmap(envid_t envid, void *va)
 {
 	// Hint: This function is a wrapper around page_remove().
+	// LAB 4: Your code here.
 	struct Env *e;
 	if(envid2env(envid, &e, 1) < 0)		return -E_BAD_ENV; 
 	if((uintptr_t)va >= UTOP)			return -E_INVAL;
 
 	page_remove(e->env_pgdir, va);
 	return 0;
-	// LAB 4: Your code here.
+
 	// panic("sys_page_unmap not implemented");
 }
 
@@ -322,7 +323,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 
 	// if valid addresses
 	if((int)srcva < UTOP){
-		if(srcva != ROUNDDOWN(srcva, PGSIZE))					return -E_INVAL;
+		if(srcva != ROUNDDOWN(srcva, PGSIZE))						return -E_INVAL;
 		
 		// permission checking
 		if((perm & ~(PTE_U | PTE_P | PTE_AVAIL | PTE_W)) != 0) 		return -E_INVAL;
@@ -345,7 +346,6 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	}
 
 	e->env_status = ENV_RUNNABLE;
-
 	return 0;
 
 	// panic("sys_ipc_try_send not implemented");
@@ -381,7 +381,6 @@ sys_ipc_recv(void *dstva)
 
 	e->env_status 	   = ENV_NOT_RUNNABLE;
 	e->env_tf.tf_regs.reg_eax 	   = 0;
-	// cprintf("readied recieve %d %p\n", curenv->env_ipc_recving, curenv->env_id);
 	sched_yield(); 
 
 	// panic("sys_ipc_recv not implemented");
